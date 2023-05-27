@@ -29,6 +29,15 @@ def listen_to_messages(client_socket):
         last_text_on_clipboard = data
         pyperclip.copy(data)
 
+def start_threads(client_socket):
+    is_stopped = Event()
+    clipboard_checker = threading.Thread(target=check_if_clipboard_changed, args=(client_socket,is_stopped))
+    clipboard_checker.start()
+
+    listen_to_messages(client_socket)
+
+    is_stopped.set()
+
 def start_server():
     global last_text_on_clipboard
 
@@ -46,13 +55,7 @@ def start_server():
     while True:
         client_socket, client_address = server_socket.accept()
         print(f"Accepted connection from {client_address[0]}:{client_address[1]}")
-        is_stopped = Event()
-        clipboard_checker = threading.Thread(target=check_if_clipboard_changed, args=(client_socket,is_stopped))
-        clipboard_checker.start()
-
-        listen_to_messages(client_socket)
-
-        is_stopped.set()
+        start_threads(client_socket)
 
 
 def start_client():
@@ -67,11 +70,7 @@ def start_client():
     try:
         client_socket.connect((host, port))
         print(f"Connected to {host}:{port}")
-        is_stopped = Event()
-        clipboard_checker = threading.Thread(target=check_if_clipboard_changed, args=(client_socket,is_stopped))
-        clipboard_checker.start()
-        listen_to_messages(client_socket)
-        is_stopped.set()
+        start_threads(client_socket)
     except ConnectionRefusedError:
         print("Connection refused. Make sure the server is running.")
     finally:
