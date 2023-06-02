@@ -12,7 +12,13 @@ Besides that, depending on the OS you're running, you'll perhaps need to install
 
 ## Usage
 
-The application works this way:
+### Command line
+The usage using the command line works this way:
 
-- To run it, execute ```python3 main.py```
+- To run it, execute ```python3 command_line.py```
 - It'll ask two options: "s" (to run it as a server) and "c" (to run it as a client). One computer should be the server, and the other should the client, connecting to the IP and port of the server
+
+### GUI
+The application also has a graphical interface. To run it, execute ```python3 gui.py```
+
+![Main_screen](https://github.com/Blackth01/sync-clipboard/blob/main/screenshots/initial_screen2.png?raw=true)
