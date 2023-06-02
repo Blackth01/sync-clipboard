@@ -1,11 +1,48 @@
 import sys
+import threading
 
 from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel, \
     QPushButton, QComboBox, QLineEdit, \
-        QMessageBox, QFileDialog
+        QMessageBox
 from PyQt5 import uic
-from PyQt5.Qt import  QIntValidator
+from PyQt5.Qt import QIntValidator
+
+from utils import SyncClipboard
+
+
+class Worker(QObject):
+    updateStatusLabel = pyqtSignal(str)
+    showMsg = pyqtSignal(str, bool)
+    finished = pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+
+        self.syncclipboard = SyncClipboard(print_msg=self.print_msg)
+
+
+    def start_server(self, port):
+        try:
+            self.syncclipboard.start_server(port)
+        except Exception as e:
+            self.showMsg.emit(f"An error occured while running the server: {e}", True)
+
+        self.finished.emit()
+
+
+    def start_client(self, port, ip_address):
+        try:
+            self.syncclipboard.start_client(ip_address, port)
+        except Exception as e:
+            self.showMsg.emit(f"An error occured while running the client: {e}", True)
+
+        self.finished.emit()
+
+
+    def print_msg(self, text):
+        self.updateStatusLabel.emit(text)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -25,6 +62,11 @@ class MainWindow(QMainWindow):
         self.action_mode.currentTextChanged.connect(self.changeButtonText)
         self.start_button.clicked.connect(self.executeAction)
 
+        self.worker = Worker()
+        self.worker.finished.connect(self.actionFinished)
+        self.worker.updateStatusLabel.connect(self.updateStatusLabel)
+        self.worker.showMsg.connect(self.showMsg)
+
         self.show()
 
 
@@ -41,7 +83,40 @@ class MainWindow(QMainWindow):
 
 
     def executeAction(self):
-        self.showMsg("Você está clicando realmente no botão!", False)
+        currentMode = self.action_mode.currentText()
+        ip_address = self.address_input.text()
+        port = self.port_input.text()
+
+        if(currentMode == "Client"):
+            if(not ip_address):
+                self.showMsg("The IP address is empty! Please insert one")
+                return False
+
+
+        if(not port):
+            self.showMsg("The port is empty! Please insert one")
+            return False
+
+        port = int(port)
+
+        self.action_mode.setEnabled(False)
+        self.start_button.setEnabled(False)
+
+        if(currentMode == "Server"):
+            thread = threading.Thread(target=self.worker.start_server, args=(port,))
+        else:
+            thread = threading.Thread(target=self.worker.start_client, args=(port, ip_address))
+
+        thread.start()
+
+
+    def actionFinished(self):
+        currentText = self.action_mode.currentText()
+
+        self.start_button.setEnabled(True)
+        self.action_mode.setEnabled(True)
+
+        self.changeButtonText(currentText)
 
 
     def showMsg(self, msgText, error=True):
