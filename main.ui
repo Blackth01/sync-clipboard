@@ -94,6 +94,9 @@
          <bold>true</bold>
         </font>
        </property>
+       <property name="styleSheet">
+        <string notr="true">background-color: #e01b24;</string>
+       </property>
        <property name="text">
         <string>Start as a server</string>
        </property>
